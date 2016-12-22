@@ -8,9 +8,12 @@ Hangman
     Buchstaben ersetzt, an deren Stelle das Wort diesen Buchstaben hatte
   * Wenn der Buchstabe nicht in dem Wort vorkommt, dann wir der Benutzer darüber informiert
   * Jede Eingabe des Benutzers wird auf Richtigkeit überprüft (ist es genau ein Buchstabe)
-  * Groß- und Kleinschreibung wird nicht beachtet
+  * Groß- und Kleinschreibung wird nicht beachtet (alle Eingaben werden in Kleinbuchstabeln konvertiert)
   * Wenn das Wort vollständig erraten ist, wird eine Erfolgsmeldung angezeigt
 
 ZUSÄTZLICH
-  * nach x falschen Buchstaben endet das Spiel
   * Alle bereits verwendeten falschen Buchstaben werden angezeigt
+  * nach x falschen Buchstaben endet das Spiel
+  * für jeden falschen Buchstaben wird ein Stück des Hangman auf dem Bildschirm angezeigt
+    => Als Inspiration zum Hangman Zeichnen, schaut euch mal das zweite Bild auf dieser Seite an: http://ascii.co.uk/art/hangman
+  * was immer euch sonst noch für lustige Sachen einfallen
