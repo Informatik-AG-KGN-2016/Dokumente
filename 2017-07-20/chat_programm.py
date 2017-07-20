@@ -187,19 +187,19 @@ class ChatProgram(QWidget):
 
     def send_message(self):
         line = self.line.text()
-        if line == "\\end":
-            json_string = self.create_packet_2(self.__nickname, "logout")
-            self.__my_socket.send(json_string)
-            self.__my_socket.close()
-            self.chat.append("\nAusgeloggt!\n")
-            self.__running = False
-        else:
-            self.chat.append(self.__nickname + ": " + line)
-            json_string = self.create_packet_1(self.__nickname, line)
-            if not self.__my_socket.send(json_string):
-                self.__running = False
+        self.chat.append(self.__nickname + ": " + line)
+        json_string = self.create_packet_1(self.__nickname, line)
+        if not self.__my_socket.send(json_string):
+            self.disconnect()
         self.line.setText("")
             
+
+    def disconnect(self):
+        self.__running = False
+        json_string = self.create_packet_2(self.__nickname, "logout")
+        self.__my_socket.send(json_string)
+        sys.exit()
+
 
     def socket_input_runnable(self):
         while self.__running:
@@ -214,11 +214,12 @@ class ChatProgram(QWidget):
                     elif packet.aktion == "logout":
                         self.chat.append(packet.sender_name + " hat den Chatraum verlassen!")
             else:
-                self.__running = False
+                self.disconnect()
                 
 
 
 app = QApplication(sys.argv)
 chat_program = ChatProgram()
+app.aboutToQuit.connect(chat_program.disconnect)
 chat_program.init_launch_ui()
 sys.exit(app.exec_())
