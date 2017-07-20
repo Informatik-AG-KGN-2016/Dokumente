@@ -1,6 +1,14 @@
 import json, rotation_encryption, simple_socket, sys, threading, time
 from PyQt4.QtGui import *
 
+def clearLayout(layout):
+    while layout.count():
+        child = layout.takeAt(0)
+        if child.widget():
+            child.widget().deleteLater()
+        elif child.layout():
+            clearLayout(child.layout())
+
 class Packet:
 
     def __init__(self, json_string=""):
@@ -115,15 +123,15 @@ class ChatProgram(QWidget):
         
 
     def connect(self):
-        server_address = self.line1.text()              # lese IP-Adresse und Port aus
-        server_port = self.line2.text()
+        self.__server_address = self.line1.text()              # lese IP-Adresse und Port aus
+        self.__server_port = self.line2.text()
 
         try:
-            server_port = int(str(server_port))         # konvertiere Port zu Ganzzahl
+            self.__server_port = int(str(self.__server_port))         # konvertiere Port zu Ganzzahl
         except:
             return
 
-        self.__my_socket = simple_socket.connect_as_client(server_address, server_port)
+        self.__my_socket = simple_socket.connect_as_client(self.__server_address, self.__server_port)
 
         if not self.__my_socket:                        # prüfe ob Verbindung erfolgreich war
             return
@@ -143,12 +151,9 @@ class ChatProgram(QWidget):
 
     def init_chat_ui(self):
 
-        while self.layout().count():                    # lösche Objekte des Launch-Fensters
-            child = self.layout().takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+        clearLayout(self.layout())                      # lösche Objekte des Launch-Fensters
         
-        self.setWindowTitle("Chat")                     # setze Fenster-Titel
+        self.setWindowTitle("Chat [" + self.__server_address + ":" + str(self.__server_port) + "]")                     # setze Fenster-Titel
 
         self.chat = QTextEdit()                         # erzeuge Nur-Lese-Textfeld für den Chat-Verlauf
         self.chat.setReadOnly(True)
