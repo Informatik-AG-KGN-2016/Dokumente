@@ -76,19 +76,29 @@ class Packet:
 class ChatProgram(QWidget):
 
     def __init__(self):
+        
         super().__init__()
+        v_box = QVBoxLayout()                           # erzeuge und setze vertikales Haupt-Layout
+        self.setLayout(v_box)
+        
         self.__running = False
         self.__nickname = None
         self.__my_socket = None
         self.__socket_input_thread = None
 
+        self.show()                                     # mache Fenster sichtbar
+        
+
 
     # Initialisiert das Launch-Fenster
     def init_launch_ui(self):
-        self.setWindowTitle("Launch Chat")              # setze den Fenster-Titel
+        clearLayout(self.layout())                      # leere das Fenster
 
-        v_box = QVBoxLayout()                           # erzeuge und setze vertikales Haupt-Layout
-        self.setLayout(v_box)
+        v_box = self.layout()
+
+        self.resize(480, 240)
+        
+        self.setWindowTitle("Launch Chat")              # setze den Fenster-Titel
 
         self.label1 = QLabel("Server-Adresse: ")        # erzeuge Label und Eingabe-Feld für IP-Adresse
         self.line1 = QLineEdit()
@@ -119,8 +129,6 @@ class ChatProgram(QWidget):
         self.line2.returnPressed.connect(self.connect)
         self.line3.returnPressed.connect(self.connect)
 
-        self.show()                                     # mache Fenster sichtbar
-        
 
     def connect(self):
         self.__server_address = self.line1.text()              # lese IP-Adresse und Port aus
@@ -151,9 +159,11 @@ class ChatProgram(QWidget):
 
     def init_chat_ui(self):
 
-        clearLayout(self.layout())                      # lösche Objekte des Launch-Fensters
+        clearLayout(self.layout())                      # leere das Fenster
+
+        self.resize(720, 480)
         
-        self.setWindowTitle("Chat [" + self.__server_address + ":" + str(self.__server_port) + "]")                     # setze Fenster-Titel
+        self.setWindowTitle("Chat")                     # setze Fenster-Titel
 
         self.chat = QTextEdit()                         # erzeuge Nur-Lese-Textfeld für den Chat-Verlauf
         self.chat.setReadOnly(True)
@@ -201,8 +211,9 @@ class ChatProgram(QWidget):
 
     def disconnect(self):
         self.__running = False
-        json_string = self.create_packet_2(self.__nickname, "logout")
-        self.__my_socket.send(json_string)
+        if self.__my_socket:
+            json_string = self.create_packet_2(self.__nickname, "logout")
+            self.__my_socket.send(json_string)
         sys.exit()
 
 
