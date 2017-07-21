@@ -1,14 +1,20 @@
 import simple_socket, threading
+from chat_protokoll import Packet
+
 
 clients = []
 client_mutex = threading.Lock()
+users = []
+users_mutex = threading.Lock()
 
 def waiter_runnable(server_socket):
     while True:
         client = server_socket.accept()
+        
         client_mutex.acquire()
         clients.append(client)
         client_mutex.release()
+        
         new_thread = threading.Thread(target=sender_runnable, args=(client,))
         new_thread.start()
 
@@ -18,6 +24,29 @@ def sender_runnable(client):
         message = client.receive()
         if message:
             print("\n" + message)
+
+            try:
+                packet = Packet(message)
+                if packet.nachrichten_id == 2:
+                    if packet.aktion == "login":
+                        users_mutex.acquire()
+                        users.append(packet.sender_name)
+
+                        response = Packet()
+                        response.nachrichten_id = 2
+                        response.aktion = "login_success"
+                        response.sender_name = "##server##"
+                        response.bekannte_sender = users
+                        client.send(response.to_json_string())
+                        users_mutex.release()
+                        
+                    elif packet.aktion == "logout":
+                        users_mutex.acquire()
+                        users.remove(packet.sender_name)
+                        users_mutex.release()
+            except:
+                pass
+            
             client_mutex.acquire()
             for c in clients:
                 if c != client:
