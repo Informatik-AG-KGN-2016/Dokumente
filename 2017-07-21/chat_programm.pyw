@@ -1,5 +1,6 @@
-import json, rotation_encryption, simple_socket, sys, threading, time
+import json, simple_socket, sys, threading, time
 from PyQt4.QtGui import *
+from chat_protokoll import Packet
 
 def clearLayout(layout):
     while layout.count():
@@ -8,69 +9,6 @@ def clearLayout(layout):
             child.widget().deleteLater()
         elif child.layout():
             clearLayout(child.layout())
-
-class Packet:
-
-    def __init__(self, json_string=""):
-        if json_string == "":
-            return
-        dictionary = json.loads(json_string)
-        if "nachrichten_id" in dictionary:
-            self.nachrichten_id = dictionary["nachrichten_id"]
-            if self.nachrichten_id == 1:
-                encryption_key = dictionary["verschlüsselung"]["parameter"][0]
-                if "text" in dictionary["verschlüsselung"]["verschlüsselte_parameter"]:
-                    self.text = rotation_encryption.decrypt(dictionary["text"], encryption_key)
-                else:
-                    self.text = dictionary["text"]
-                if "sender_name" in dictionary["verschlüsselung"]["verschlüsselte_parameter"]:
-                    self.sender_name = rotation_encryption.decrypt(dictionary["sender_name"], encryption_key)
-                else:
-                    self.sender_name = dictionary["sender_name"]
-            elif self.nachrichten_id == 2:
-                self.aktion = dictionary["aktion"]
-                self.sender_name = dictionary["sender_name"]
-        
-    def to_json_string(self):
-        if self.nachrichten_id == 1:
-            dictionary = {
-                "nachrichten_id": self.nachrichten_id,
-                "text": rotation_encryption.encrypt(self.text, self.encryption_key),
-                "text_länge": len(self.text),
-                "verschlüsselung":
-                {
-                    "algorithmus": "caesar",
-                    "parameter": [self.encryption_key],
-                    "verschlüsselte_parameter": ["text", "sender_name"]
-                },
-                "sender_name": rotation_encryption.encrypt(self.sender_name, self.encryption_key),
-                "zeitstempel": time.time(),
-                "protokoll_version": "0.2"
-            }
-            return json.dumps(dictionary)
-        if self.nachrichten_id == 2:
-            dictionary = {
-                "nachrichten_id": self.nachrichten_id,
-                "aktion": self.aktion,
-                "sender_name": self.sender_name,
-                "zeitstempel": time.time(),
-                "protokoll_version": "0.2"
-            }
-            return json.dumps(dictionary)
-
-    
-
-#packet = Packet()
-#packet.nachrichten_id = 2
-#packet.sender_name = "test"
-#packet.aktion = "login"
-#string = packet.to_json_string()
-#
-#packet2 = Packet(string)
-#if packet2.nachrichten_id == 1:
-#    print(packet2.sender_name + ": " + packet2.text)
-#elif packet2.nachrichten_id == 2:
-#    print(packet2.sender_name + (" hat sich ausgeloggt" if packet2.aktion == "logout" else " hat sich eingeloggt"))
 
 
 class ChatProgram(QWidget):
@@ -85,6 +23,7 @@ class ChatProgram(QWidget):
         self.__nickname = None
         self.__my_socket = None
         self.__socket_input_thread = None
+        self.__known_users = []
 
         self.show()                                     # mache Fenster sichtbar
         
@@ -168,19 +107,26 @@ class ChatProgram(QWidget):
         self.chat = QTextEdit()                         # erzeuge Nur-Lese-Textfeld für den Chat-Verlauf
         self.chat.setReadOnly(True)
 
+        self.users = QTextEdit()                        # erzeuge Nur-Lese-Textfeld für die Senderliste
+        self.users.setReadOnly(True)
+
         self.line = QLineEdit()                         # erzeuge Ein-Zeilen-Textfeld zum Schreiben
         self.line.returnPressed.connect(self.send_message)    # Enter drücken sendet Nachricht
 
         self.button = QPushButton("Senden")             # erzeuge "Senden"-Button
         self.button.clicked.connect(self.send_message)
 
-        h_box = QHBoxLayout()                           # erzeuge horizontales Layout für Textfeld und Button
-        h_box.addWidget(self.line)
-        h_box.addWidget(self.button)
+        h1_box = QHBoxLayout()
+        h1_box.addWidget(self.chat)
+        h1_box.addWidget(self.users)
+
+        h2_box = QHBoxLayout()                           # erzeuge horizontales Layout für Textfeld und Button
+        h2_box.addWidget(self.line)
+        h2_box.addWidget(self.button)
 
         v_box = self.layout()                           # füge alle Objekte zum vertikalen Haupt-Layout hinzu
-        v_box.addWidget(self.chat)
-        v_box.addLayout(h_box)
+        v_box.addLayout(h1_box)
+        v_box.addLayout(h2_box)
 
     
     def create_packet_1(self, sender, message):
@@ -227,8 +173,15 @@ class ChatProgram(QWidget):
                 elif packet.nachrichten_id == 2:
                     if packet.aktion == "login":
                         self.chat.append(packet.sender_name + " hat den Chatraum betreten!")
+                        self.__known_users.append(packet.sender_name)
                     elif packet.aktion == "logout":
                         self.chat.append(packet.sender_name + " hat den Chatraum verlassen!")
+                        self.__known_users.remove(packet.sender_name)
+                    elif packet.aktion == "login_success":
+                        self.__known_users = packet.bekannte_sender
+                    self.users.clear()
+                    for user in self.__known_users:
+                        self.users.append(user)
             else:
                 self.disconnect()
                 
